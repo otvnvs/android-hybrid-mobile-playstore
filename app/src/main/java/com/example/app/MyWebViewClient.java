@@ -202,15 +202,17 @@ if (!isTrustedOrigin(uri)) {
 
     @Override 
     public void onReceivedSslError(WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
+        handler.cancel();
+	/*
         String failingUrl = (error != null) ? error.getUrl() : "Unknown URL";
-        
         if (isLocalOrTrustedUrl(failingUrl)) {
-        Log.w(TAG, "SSL warning for local/trusted URL: " + failingUrl);
-        handler.proceed();   // Only for truly local content
+            Log.w(TAG, "SSL warning for local/trusted URL: " + failingUrl);
+            handler.proceed();   // Only for truly local content
         } else {
-        Log.e(TAG, "SSL error for external URL: " + failingUrl);
-        handler.cancel();    // Default secure behavior
+            Log.e(TAG, "SSL error for external URL: " + failingUrl);
+            handler.cancel();    // Default secure behavior
         }
+	*/
     }
 
     private boolean isLocalOrTrustedUrl(String url) {
