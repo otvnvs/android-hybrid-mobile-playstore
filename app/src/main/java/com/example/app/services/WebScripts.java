@@ -84,7 +84,7 @@ public class WebScripts {
             "    \n" +
             "    // The new constructor wrapper\n" +
             "    window.WebSocket = function(url, protocols) {\n" +
-            "        const isLocalFakeRoute = url.includes('virtual-local-bridge') || url.startsWith('ws://localhost') || url.includes('/api/ws/');\n" +
+            "        const isLocalFakeRoute = url.includes('virtual-local-bridge') || url.startsWith('ws://decabase.com') || url.includes('/api/ws/');\n" +
             "        \n" +
             "        if (!isLocalFakeRoute) {\n" +
             "            console.log('[WS_ROUTER] Routing to Standard Browser Web-Stack: ' + url);\n" +

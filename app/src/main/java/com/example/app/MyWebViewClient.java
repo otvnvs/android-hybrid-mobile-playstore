@@ -216,7 +216,7 @@ if (!isTrustedOrigin(uri)) {
     private boolean isLocalOrTrustedUrl(String url) {
         return url.startsWith("file://") || 
            url.startsWith("https://" + getRawVirtualHost()) ||
-           url.contains("example.com") || // update with your real virtual host
+           url.contains("decabase.com") || // update with your real virtual host
            url.startsWith(mConfig.getVirtualHost());
     }
 

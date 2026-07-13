@@ -15,7 +15,7 @@ public class AppConfig {
     }
 
     public String getVirtualHost() {
-        return "https://localhost";
+        return "https://decabase.com";
     }
 
     public String getWorkspaceFolderName() {
