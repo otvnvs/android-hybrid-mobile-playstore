@@ -1,25 +1,15 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport"content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"><title>Hello App</title><link rel="icon" href="data:,"><style>*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;}body{margin:0;padding:0;width:100vw;height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;background-color:
-#121212;
-font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:
-#ffffff;
-overflow:hidden;}.logo-container{width:40vw;max-width:150px;min-width:80px;aspect-ratio:1/1;margin-bottom:24px;display:flex;justify-content:center;align-items:center;}.lightning-bolt{width:100%;height:100%;fill:
-#FFD700;
-filter:drop-shadow(0px 4px 10px rgba(255,215,0,0.3));}h1{font-size:1.5rem;font-weight:600;margin:0 0 8px 0;letter-spacing:0.5px;}p{font-size:0.9rem;color:
-#aaaaaa;
-margin:0 0 24px 0;}.instruction{font-size:0.75rem;color:
-#555555;
-text-align:center;max-width:80%;line-height:1.4;border-top:1px solid
-#222222;
-padding-top:16px;}
-#maintenance-screen {
-position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:
-#1a1a1a;
-display:none;flex-direction:column;justify-content:center;align-items:center;z-index:9999;padding:20px;text-align:center;}
-#maintenance-screen h2 {
-color:
-#FFD700;
-font-size:1.4rem;margin-bottom:12px;}.close-btn{margin-top:30px;padding:10px 20px;background:
-#333;
-color:
-#fff;
-border:none;border-radius:4px;font-size:0.9rem;}</style></head><body><!--Main Application Screen--><div class="logo-container"><svg width="512"height="512"viewBox="0 0 135.46666 135.46667"version="1.1"id="svg5"inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"sodipodi:docname="icon.svg"xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"xmlns:xlink="http://www.w3.org/1999/xlink"xmlns="http://www.w3.org/2000/svg"xmlns:svg="http://www.w3.org/2000/svg"><sodipodi:namedview id="namedview7"pagecolor="#ffffff"bordercolor="#666666"borderopacity="1.0"inkscape:pageshadow="2"inkscape:pageopacity="0.0"inkscape:pagecheckerboard="0"inkscape:document-units="mm"showgrid="false"units="px"inkscape:zoom="0.64052329"inkscape:cx="117.87237"inkscape:cy="567.50474"inkscape:window-width="2560"inkscape:window-height="1563"inkscape:window-x="0"inkscape:window-y="0"inkscape:window-maximized="1"inkscape:current-layer="layer1"inkscape:showpageshadow="2"inkscape:deskcolor="#d1d1d1"/><defs id="defs2"><linearGradient inkscape:collect="always"id="linearGradient3034"><stop style="stop-color:#ffff00;stop-opacity:1;"offset="0"id="stop3030"/><stop style="stop-color:#ffffff;stop-opacity:1"offset="1"id="stop3032"/></linearGradient><linearGradient inkscape:collect="always"xlink:href="#linearGradient3034"id="linearGradient3036"x1="290.38757"y1="98.357079"x2="199.83661"y2="498.0303"gradientUnits="userSpaceOnUse"gradientTransform="matrix(0.154104,0,0,0.154104,28.614152,28.614146)"/></defs><g inkscape:label="Layer 1"inkscape:groupmode="layer"id="layer1"><path id="rect1004"style="fill:url(#linearGradient3036);fill-opacity:1;stroke:#000000;stroke-width:3.4472;stroke-dasharray:none;stroke-opacity:1"d="M 73.774744,34.851144 63.299585,62.553745 H 48.286786 L 63.27942,102.20301 73.754579,74.500417 h 15.012798 z"/></g></svg></div><!--Instruction block--><div class="instruction">Press the <strong>Volume Up</strong> and <strong>Volume Down</strong> to configure...</div><!--Hidden Maintenance Screen--><div id="maintenance-screen"><h2>Maintenance Mode</h2><p>System updates and diagnostic tools are available here.</p><!--Add your update forms,buttons,or logs here--><button class="close-btn"onclick="toggleMaintenance(false)">Exit Maintenance</button></div><script>const keysPressed={};window.addEventListener('keydown',(event)=>{if(event.key==='VolumeUp'||event.key==='VolumeDown'){keysPressed[event.key]=true;}if(keysPressed['VolumeUp']&&keysPressed['VolumeDown']){toggleMaintenance(true);}});window.addEventListener('keyup',(event)=>{if(event.key==='VolumeUp'||event.key==='VolumeDown'){keysPressed[event.key]=false;}});function toggleMaintenance(show){const screen=document.getElementById('maintenance-screen');screen.style.display=show?'flex':'none';}</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vite Workspace</title>
+  <link rel="icon" href="data:,">
+  <script type="module" crossorigin src="./assets/main-C_KFYldQ.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/main-qUEMH7k0.css">
+</head>
+<body>
+  <div id="app"></div>
+</body>
+</html>
+

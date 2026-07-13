@@ -33,7 +33,14 @@ class MyWebViewClient extends WebViewClient {
 
     @Override 
     public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
-        super.onPageStarted(view, url, favicon);
+super.onPageStarted(view, url, favicon);
+    
+    Uri uri = Uri.parse(url);
+    if (!isTrustedOrigin(uri)) {
+        Log.w(TAG, "Blocked page start for untrusted URL: " + url);
+        if (mConfig != null) view.loadUrl(mConfig.getVirtualHost());
+        return;
+    }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             view.evaluateJavascript(com.example.app.services.WebScripts.INTERCEPT_SCRIPT, null);
             view.evaluateJavascript(com.example.app.services.WebScripts.WEBSOCKET_PROXY_SCRIPT, null);
@@ -59,7 +66,15 @@ class MyWebViewClient extends WebViewClient {
 
 @Override 
 public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-    Uri uri = request.getUrl();
+	Uri uri = request.getUrl();
+    
+    if (!isTrustedOrigin(uri)) {
+        Log.w(TAG, "Blocked intercepted request to untrusted origin: " + uri);
+        String error = "{\"status\":\"error\",\"message\":\"Access to external origins is not allowed.\"}";
+        return new WebResourceResponse("application/json", "UTF-8", 
+            new ByteArrayInputStream(error.getBytes(StandardCharsets.UTF_8)));
+    }
+
     String path = uri.getPath();
     
     // =========================================================================
@@ -146,7 +161,15 @@ public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceReque
         return handleUrlRouting(view, Uri.parse(url));
     }
 private boolean handleUrlRouting(WebView view, Uri uri) {
-    return false;
+if (!isTrustedOrigin(uri)) {
+        Log.w(TAG, "Blocked attempt to load untrusted URL: " + uri);
+        // Optional: Show toast or load error page
+        if (mConfig != null) {
+            view.loadUrl(mConfig.getVirtualHost());
+        }
+        return true; // Block
+    }
+    return false; // Allow
 }
 
     @Override 
@@ -180,13 +203,43 @@ private boolean handleUrlRouting(WebView view, Uri uri) {
     @Override 
     public void onReceivedSslError(WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
         String failingUrl = (error != null) ? error.getUrl() : "Unknown URL";
-        if (Build.VERSION.SDK_INT <= 30) {
-            Log.w(TAG, "[ZEBRA SSL RECOVERY] Overriding certificate trust dropout chain validation for path: " + failingUrl);
-            handler.proceed();
+        
+        if (isLocalOrTrustedUrl(failingUrl)) {
+        Log.w(TAG, "SSL warning for local/trusted URL: " + failingUrl);
+        handler.proceed();   // Only for truly local content
         } else {
-            Log.d(TAG, "[SSL DEFAULT] Passing standard system security trust rules validation check.");
-            super.onReceivedSslError(view, handler, error);
+        Log.e(TAG, "SSL error for external URL: " + failingUrl);
+        handler.cancel();    // Default secure behavior
         }
     }
+
+    private boolean isLocalOrTrustedUrl(String url) {
+        return url.startsWith("file://") || 
+           url.startsWith("https://" + getRawVirtualHost()) ||
+           url.contains("example.com") || // update with your real virtual host
+           url.startsWith(mConfig.getVirtualHost());
+    }
+
+private boolean isTrustedOrigin(Uri uri) {
+    if (uri == null) return false;
+    
+    String host = uri.getHost();
+    String scheme = uri.getScheme();
+    String virtualHost = mConfig != null ? mConfig.getVirtualHost() : null;
+    
+    if (virtualHost == null || virtualHost.isEmpty()) return false;
+    
+    // Allow file:// assets
+    if ("file".equals(scheme)) {
+        return true;
+    }
+    
+    // Allow the configured virtual host
+    Uri virtualUri = Uri.parse(virtualHost);
+    String virtualHostStr = virtualUri.getHost();
+    
+    return host != null && virtualHostStr != null && 
+           (host.equals(virtualHostStr) || virtualHost.startsWith(scheme + "://" + host));
 }
 
+}

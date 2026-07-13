@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="trusted_domains">
+        <item>s4hana2025.professorsoft.com</item>
+    </string-array>
+</resources>

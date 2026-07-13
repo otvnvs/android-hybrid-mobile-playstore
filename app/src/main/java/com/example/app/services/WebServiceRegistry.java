@@ -28,57 +28,110 @@ public class WebServiceRegistry {
         compileAllControllerRoutes();
     }
 
-    @SuppressWarnings("deprecation")
-    private void discoverControllersAutomated(Context context, String targetPackagePrefix) {
-        try {
-            String packageCodePath = context.getPackageCodePath();
-            // Open the running compilation application package directly to iterate its DEX definition headers
-            dalvik.system.DexFile dexFile = new dalvik.system.DexFile(packageCodePath);
-            Enumeration<String> dexEntries = dexFile.entries();
+//    @SuppressWarnings("deprecation")
+//    private void discoverControllersAutomated(Context context, String targetPackagePrefix) {
+//        try {
+//            String packageCodePath = context.getPackageCodePath();
+//            // Open the running compilation application package directly to iterate its DEX definition headers
+//            dalvik.system.DexFile dexFile = new dalvik.system.DexFile(packageCodePath);
+//            Enumeration<String> dexEntries = dexFile.entries();
+//
+//            while (dexEntries.hasMoreElements()) {
+//                String className = dexEntries.nextElement();
+//                
+//                // Target matching classes within the target package namespace boundary rules
+//                if (className.startsWith(targetPackagePrefix)) {
+//                    // Ignore framework system utility abstractions or classes we are currently running inside
+//                    if (className.equals(WebServiceRegistry.class.getName()) || 
+//                        className.equals(RequestMapping.class.getName()) || 
+//                        className.equals(RequestContext.class.getName()) || 
+//                        className.equals(ResponseContext.class.getName())) {
+//                        continue;
+//                    }
+//
+//                    try {
+//                        Class<?> clazz = Class.forName(className);
+//                        
+//                        // Optimize scan: Verify if the class contains any methods using our routing annotation
+//                        boolean isController = false;
+//                        for (Method m : clazz.getMethods()) {
+//                            if (m.isAnnotationPresent(RequestMapping.class)) {
+//                                isController = true;
+//                                break;
+//                            }
+//                        }
+//
+//                        if (isController) {
+//                            Log.i(TAG, "[Automated Discovery] Found valid service component: " + className);
+//                            // Instantiate via the fallback public parameterless constructor signature layout
+//                            Object controllerInstance = clazz.getDeclaredConstructor().newInstance();
+//                            domainControllers.add(controllerInstance);
+//                        }
+//                    } catch (ClassNotFoundException | LinkageError e) {
+//                        // Suppress background configuration artifacts that fail compilation visibility layout checks
+//                        Log.v(TAG, "Skipping compilation check for inaccessible resource: " + className);
+//                    } catch (Exception ex) {
+//                        Log.w(TAG, "Failed instantiating auto-discovered target class matrix: " + className, ex);
+//                    }
+//                }
+//            }
+//        } catch (Exception e) {
+//            Log.e(TAG, "Critical automated component scanning framework crash context: " + e.getMessage(), e);
+//        }
+//    }
+@SuppressWarnings("deprecation")
+private void discoverControllersAutomated(Context context, String targetPackagePrefix) {
+    try {
+        String packageCodePath = context.getPackageCodePath();
+        dalvik.system.DexFile dexFile = new dalvik.system.DexFile(packageCodePath);
+        Enumeration<String> dexEntries = dexFile.entries();
 
-            while (dexEntries.hasMoreElements()) {
-                String className = dexEntries.nextElement();
-                
-                // Target matching classes within the target package namespace boundary rules
-                if (className.startsWith(targetPackagePrefix)) {
-                    // Ignore framework system utility abstractions or classes we are currently running inside
-                    if (className.equals(WebServiceRegistry.class.getName()) || 
-                        className.equals(RequestMapping.class.getName()) || 
-                        className.equals(RequestContext.class.getName()) || 
-                        className.equals(ResponseContext.class.getName())) {
-                        continue;
+        while (dexEntries.hasMoreElements()) {
+            String className = dexEntries.nextElement();
+            if (className.startsWith(targetPackagePrefix)) {
+                if (className.equals(WebServiceRegistry.class.getName()) ||
+                    className.equals(RequestMapping.class.getName()) ||
+                    className.equals(RequestContext.class.getName()) ||
+                    className.equals(ResponseContext.class.getName())) {
+                    continue;
+                }
+
+                try {
+                    Class<?> clazz = Class.forName(className);
+                    boolean isController = false;
+                    for (Method m : clazz.getMethods()) {
+                        if (m.isAnnotationPresent(RequestMapping.class)) {
+                            isController = true;
+                            break;
+                        }
                     }
 
-                    try {
-                        Class<?> clazz = Class.forName(className);
-                        
-                        // Optimize scan: Verify if the class contains any methods using our routing annotation
-                        boolean isController = false;
-                        for (Method m : clazz.getMethods()) {
-                            if (m.isAnnotationPresent(RequestMapping.class)) {
-                                isController = true;
-                                break;
-                            }
+                    if (isController) {
+                        Log.i(TAG, "[Automated Discovery] Found valid service component: " + className);
+
+                        Object controllerInstance = null;
+
+                        // Try Context constructor first
+                        try {
+                            controllerInstance = clazz.getDeclaredConstructor(Context.class).newInstance(context);
+                            Log.i(TAG, "✓ Instantiated with Context: " + className);
+                        } catch (NoSuchMethodException e) {
+                            // Fallback to no-arg constructor
+                            controllerInstance = clazz.getDeclaredConstructor().newInstance();
+                            Log.i(TAG, "✓ Instantiated with no-arg constructor: " + className);
                         }
 
-                        if (isController) {
-                            Log.i(TAG, "[Automated Discovery] Found valid service component: " + className);
-                            // Instantiate via the fallback public parameterless constructor signature layout
-                            Object controllerInstance = clazz.getDeclaredConstructor().newInstance();
-                            domainControllers.add(controllerInstance);
-                        }
-                    } catch (ClassNotFoundException | LinkageError e) {
-                        // Suppress background configuration artifacts that fail compilation visibility layout checks
-                        Log.v(TAG, "Skipping compilation check for inaccessible resource: " + className);
-                    } catch (Exception ex) {
-                        Log.w(TAG, "Failed instantiating auto-discovered target class matrix: " + className, ex);
+                        domainControllers.add(controllerInstance);
                     }
+                } catch (Exception ex) {
+                    Log.w(TAG, "Failed instantiating: " + className, ex);
                 }
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Critical automated component scanning framework crash context: " + e.getMessage(), e);
         }
+    } catch (Exception e) {
+        Log.e(TAG, "Critical automated component scanning crash: " + e.getMessage(), e);
     }
+}
 
     private void compileAllControllerRoutes() {
         for (Object controller : domainControllers) {
