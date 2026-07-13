@@ -5,7 +5,7 @@
             <certificates src="system" />
         </trust-anchors>
     </base-config>
-    <domain-config cleartextTrafficPermitted="true" hstsEnforced="true">
+    <domain-config cleartextTrafficPermitted="false" hstsEnforced="true">
 	    <domain includeSubdomains="true">example.com</domain>
     </domain-config>
 </network-security-config>

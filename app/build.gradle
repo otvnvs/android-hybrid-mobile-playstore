@@ -5,14 +5,17 @@ android {
 
     defaultConfig {
         applicationId "com.example.app"
-        minSdkVersion 21
+        // STEP 2 MODIFICATION: Raised to eliminate vulnerable OS installations
+        minSdkVersion 29
         targetSdkVersion 31
         versionCode 1
         versionName "1.0"
     }
     buildTypes {
         release {
-            minifyEnabled false
+            debuggable false     
+            minifyEnabled true   
+            
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -21,3 +24,4 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
+
