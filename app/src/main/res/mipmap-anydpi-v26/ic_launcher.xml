@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Standard colored background -->
+    <background android:drawable="@color/ic_background"/>
+    
+    <!-- Standard foreground (Has the yellow fill inside) -->
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+    
+    <!-- Themed Monochrome (Uses the hollow outline PNG script output) -->
+    <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
+</adaptive-icon>
+

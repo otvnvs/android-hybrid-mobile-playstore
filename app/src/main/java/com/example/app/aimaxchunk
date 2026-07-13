@@ -1,0 +1,284 @@
+#!/usr/bin/env bash
+# --- DEFAULT CONFIGURATION ---
+CHUNK_SIZE=4096
+
+# --- HELP MENU SYSTEM ---
+show_help() {
+  cat <<EOF
+Usage: aichunk [-s chunk_size] [-h|--help] [file_or_dir ...]
+
+A terminal-based tool to scan specified files or directories,
+partition file contents into structured sequential blocks,
+and combine multiple files dynamically with empty line separation.
+
+Options:
+  -s Override the chunk size footprint in bytes (Default: 4096).
+  -h Display this command-line help interface and exit cleanly.
+
+Controls (Inside UI):
+  j/[Down Arrow]  Advance to the next combined text chunk.
+  k/[Up Arrow]    Regress to the previous combined text chunk.
+  c               Pipe current combined chunk to system clipboard and advance.
+  q               Abort script execution and restore terminal layout.
+EOF
+}
+
+# --- FLAGS INTERPRETER AND NORMALIZATION ---
+args=()
+for arg in "$@"; do
+  case "$arg" in
+    --help) args+=("-h") ;;
+    *) args+=("$arg") ;;
+  esac
+done
+set -- "${args[@]}"
+
+# Parse core switches using standard getopts
+while getopts "s:h" opt; do
+  case "$opt" in
+    s)
+      if [[ "$OPTARG" =~ ^[0-9]+$ ]] && [ "$OPTARG" -gt 0 ]; then
+        CHUNK_SIZE="$OPTARG"
+      else
+        echo "Error: Chunk size must be a positive integer." >&2
+        exit 1
+      fi
+      ;;
+    h)
+      show_help
+      exit 0
+      ;;
+    *)
+      show_help >&2
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+# --- SYSTEM CLIPBOARD AUTO-DETECTION ---
+CLIP_CMD=""
+if command -v pbcopy &>/dev/null; then
+  CLIP_CMD="pbcopy"
+elif command -v xclip &>/dev/null; then
+  CLIP_CMD="xclip -selection clipboard"
+elif command -v xsel &>/dev/null; then
+  CLIP_CMD="xsel --clipboard --input"
+fi
+
+echo "Scanning files and consolidating into maximum density buffers (Max: ${CHUNK_SIZE}B)..."
+
+# --- POSITION ARGUMENTS PROCESSING ---
+TARGET_PATHS=("$@")
+if [ ${#TARGET_PATHS[@]} -eq 0 ]; then
+  TARGET_PATHS=(".")
+fi
+
+# Generate the file list safely
+FILE_LIST=()
+for TARGET in "${TARGET_PATHS[@]}"; do
+  if [ -d "$TARGET" ]; then
+    while IFS= read -r -d '' FILE; do
+      FILE_LIST+=("$FILE")
+    done < <(find "$TARGET" -type f -print0 2>/dev/null)
+  elif [ -f "$TARGET" ]; then
+    FILE_LIST+=("$TARGET")
+  else
+    echo "Warning: '$TARGET' is not a valid file or directory. Skipping." >&2
+  fi
+done
+
+# --- MAXIMUM DENSITY CONTINUOUS STREAM PACKING ENGINE ---
+ALL_CONTENTS=()
+ALL_SIZES=()
+CURRENT_GLOBAL_CHUNK=""
+CURRENT_SIZE=0
+
+# Tracking total chunks per file for dynamic header updating
+declare -A FILE_TOTAL_CHUNKS
+declare -A FILE_CHUNK_RECORDS
+
+SEPARATOR=$'\n\n'
+SEPARATOR_LEN=2
+
+# Step 1: Pre-calculate file headers and slice segments linearly into a unified block queue
+QUEUE_FULL_STRINGS=()
+QUEUE_DISPLAY_NAMES=()
+QUEUE_LOCAL_INDICES=()
+
+for INPUT_FILE in "${FILE_LIST[@]}"; do
+  DISPLAY_NAME="${INPUT_FILE#./}"
+  
+  if command -v sqminify &>/dev/null; then
+    RAW_FILE_CONTENT=$(sqminify "$INPUT_FILE" 2>/dev/null)
+  else
+    RAW_FILE_CONTENT=$(cat "$INPUT_FILE" 2>/dev/null)
+  fi
+  [ -z "$RAW_FILE_CONTENT" ] && continue
+
+  # Pre-calculate accurate slice sizing based on target headers
+  MOCK_HEADER=$(printf "[%s][chunk 9999 of 9999]:\n" "$DISPLAY_NAME")
+  HEADER_SIZE=$(printf "%s" "$MOCK_HEADER" | wc -c)
+  MAX_SLICE_LEN=$(( CHUNK_SIZE - HEADER_SIZE - SEPARATOR_LEN ))
+
+  if [ "$MAX_SLICE_LEN" -le 10 ]; then
+    echo "Error: Chunk size ${CHUNK_SIZE}B is too small to fit file headers." >&2
+    exit 1
+  fi
+
+  # Linear slice segmentation
+  REMAINING_TEXT="$RAW_FILE_CONTENT"
+  LOCAL_SLICES=()
+  while [ -n "$REMAINING_TEXT" ]; do
+    LOCAL_SLICES+=("${REMAINING_TEXT:0:$MAX_SLICE_LEN}")
+    REMAINING_TEXT="${REMAINING_TEXT:$MAX_SLICE_LEN}"
+  done
+
+  TOTAL_SLICES=${#LOCAL_SLICES[@]}
+  FILE_TOTAL_CHUNKS["$DISPLAY_NAME"]=$TOTAL_SLICES
+
+  for ((i=0; i<TOTAL_SLICES; i++)); do
+    QUEUE_DISPLAY_NAMES+=("$DISPLAY_NAME")
+    QUEUE_LOCAL_INDICES+=("$((i+1))")
+    QUEUE_FULL_STRINGS+=("${LOCAL_SLICES[$i]}")
+  done
+done
+
+# Step 2: Dynamically aggregate chunks with absolute boundary packing
+TOTAL_QUEUE_ITEMS=${#QUEUE_FULL_STRINGS[@]}
+
+for ((idx=0; idx<TOTAL_QUEUE_ITEMS; idx++)); do
+  D_NAME="${QUEUE_DISPLAY_NAMES[$idx]}"
+  L_IDX="${QUEUE_LOCAL_INDICES[$idx]}"
+  T_CHUNKS=${FILE_TOTAL_CHUNKS["$D_NAME"]}
+  
+  HEADER=$(printf "[%s][chunk %d of %d]:\n" "$D_NAME" "$L_IDX" "$T_CHUNKS")
+  ITEM_TEXT="${QUEUE_FULL_STRINGS[$idx]}"
+  
+  FULL_BLOCK="${HEADER}${ITEM_TEXT}"
+  FULL_BLOCK_LEN=$(printf "%s" "$FULL_BLOCK" | wc -c)
+
+  while [ -n "$FULL_BLOCK" ]; do
+    PADDING=0
+    [ -n "$CURRENT_GLOBAL_CHUNK" ] && PADDING=$SEPARATOR_LEN
+    AVAILABLE=$(( CHUNK_SIZE - CURRENT_SIZE - PADDING ))
+
+    # If the remaining buffer space cannot even fit a tiny fragment, push it out
+    if [ "$AVAILABLE" -le 15 ] && [ -n "$CURRENT_GLOBAL_CHUNK" ]; then
+      ALL_CONTENTS+=("$CURRENT_GLOBAL_CHUNK")
+      ALL_SIZES+=("$CURRENT_SIZE")
+      CURRENT_GLOBAL_CHUNK=""
+      CURRENT_SIZE=0
+      PADDING=0
+      AVAILABLE=$CHUNK_SIZE
+    fi
+
+    # Slice the input text down to the exact available byte window size
+    if [ "$FULL_BLOCK_LEN" -le "$AVAILABLE" ]; then
+      # The block fits entirely inside the current buffer page
+      if [ -n "$CURRENT_GLOBAL_CHUNK" ]; then
+        CURRENT_GLOBAL_CHUNK="${CURRENT_GLOBAL_CHUNK}${SEPARATOR}${FULL_BLOCK}"
+      else
+        CURRENT_GLOBAL_CHUNK="${FULL_BLOCK}"
+      fi
+      CURRENT_SIZE=$(( CURRENT_SIZE + FULL_BLOCK_LEN + PADDING ))
+      FULL_BLOCK=""
+      FULL_BLOCK_LEN=0
+    else
+      # Hard-split the block content precisely to top off the current buffer to max capacity
+      SLICE_TXT="${FULL_BLOCK:0:$AVAILABLE}"
+      
+      if [ -n "$CURRENT_GLOBAL_CHUNK" ]; then
+        CURRENT_GLOBAL_CHUNK="${CURRENT_GLOBAL_CHUNK}${SEPARATOR}${SLICE_TXT}"
+      else
+        CURRENT_GLOBAL_CHUNK="${SLICE_TXT}"
+      fi
+      
+      # Flush the 100% full chunk to the window array
+      ALL_CONTENTS+=("$CURRENT_GLOBAL_CHUNK")
+      ALL_SIZES+=("$CHUNK_SIZE")
+      
+      # Reset buffers for the remaining overflow text
+      CURRENT_GLOBAL_CHUNK=""
+      CURRENT_SIZE=0
+      
+      FULL_BLOCK="${FULL_BLOCK:$AVAILABLE}"
+      FULL_BLOCK_LEN=$(printf "%s" "$FULL_BLOCK" | wc -c)
+    fi
+  done
+done
+
+# Final buffer sweep for the trailing under-filled remainder
+if [ -n "$CURRENT_GLOBAL_CHUNK" ]; then
+  ALL_CONTENTS+=("$CURRENT_GLOBAL_CHUNK")
+  ALL_SIZES+=("$CURRENT_SIZE")
+fi
+
+TOTAL_GLOBAL_CHUNKS=${#ALL_CONTENTS[@]}
+if [ "$TOTAL_GLOBAL_CHUNKS" -eq 0 ]; then
+  echo "No content found to display."
+  exit 0
+fi
+
+GLOBAL_INDEX=0
+NOTIFICATION_MSG=""
+trap 'tput cnorm; clear; exit 0' INT TERM EXIT
+
+# --- INTERACTIVE TERMINAL DRAW LOOP ---
+while true; do
+  tput civvis
+  clear
+  CONTENT="${ALL_CONTENTS[$GLOBAL_INDEX]}"
+  USED_BYTES="${ALL_SIZES[$GLOBAL_INDEX]}"
+  UTIL_PCT=$(( (USED_BYTES * 100) / CHUNK_SIZE ))
+  
+  # --- HIGH-DENSITY TOP CONTROL BOX ---
+  echo "========================================================================"
+  printf " HIGH-DENSITY AGGREGATION BUFFER ACTIVE\n"
+  printf " COMBINED CHUNK : %d / %d | Efficiency: %sB / %sB (%d%%)\n" "$((GLOBAL_INDEX + 1))" "$TOTAL_GLOBAL_CHUNKS" "$USED_BYTES" "$CHUNK_SIZE" "$UTIL_PCT"
+  echo " CONTROLS       : [j/k] Down/Up | [c] Copy Combined Chunk | [q] Quit"
+  echo "========================================================================"
+  
+  if [ -n "$NOTIFICATION_MSG" ]; then
+    printf "\033[1;32m%s\033[0m\n" "$NOTIFICATION_MSG"
+    NOTIFICATION_MSG=""
+  else
+    echo ""
+  fi
+  
+  printf "%s\n" "$CONTENT"
+  
+  read -r -n 1 -s KEY </dev/tty
+  if [[ "$KEY" == $'\e' ]]; then
+    read -r -n 2 -s REST </dev/tty
+    KEY+="$REST"
+  fi
+  
+  case "$KEY" in
+    "j"|$'\e[B')
+      if [ "$GLOBAL_INDEX" -lt "$((TOTAL_GLOBAL_CHUNKS - 1))" ]; then
+        ((GLOBAL_INDEX++))
+      fi
+      ;;
+    "k"|$'\e[A')
+      if [ "$GLOBAL_INDEX" -gt 0 ]; then
+        ((GLOBAL_INDEX--))
+      fi
+      ;;
+    "c"|"C")
+      if [ -n "$CLIP_CMD" ]; then
+        printf "%s" "$CONTENT" | eval "$CLIP_CMD"
+        NOTIFICATION_MSG=" -> Copied combined window block (${USED_BYTES}B) safely to clipboard!"
+      else
+        NOTIFICATION_MSG=" -> Error: Clipboard utility not found."
+      fi
+      if [ "$GLOBAL_INDEX" -lt "$((TOTAL_GLOBAL_CHUNKS - 1))" ]; then
+        ((GLOBAL_INDEX++))
+      fi
+      ;;
+    "q"|"Q")
+      break
+      ;;
+  esac
+done
+

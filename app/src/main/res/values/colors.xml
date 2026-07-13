@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Add this line (replace #FFFFFF with your desired hex background color) -->
+    <color name="ic_background">#FFFFFF</color>
+    
+    <color name="purple_200">#FFBB86FC</color>
+    <!-- your other existing colors -->
+</resources>
+
