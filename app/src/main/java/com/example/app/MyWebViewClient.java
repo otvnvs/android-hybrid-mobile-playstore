@@ -57,45 +57,6 @@ class MyWebViewClient extends WebViewClient {
         return Uri.parse(mConfig.getVirtualHost()).getHost();
     }
 
-//    @Override 
-//    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-//        Uri uri = request.getUrl();
-//        String targetHost = uri.getHost();
-//        String rawVirtualHost = getRawVirtualHost();
-//        
-//        if (targetHost != null && targetHost.equals(rawVirtualHost)) {
-//            String path = uri.getPath();
-//            if (path != null) {
-//                String method = request.getMethod();
-//                WebResourceResponse serviceResponse = mServiceRegistry.dispatch(mContext, mConfig, request, path, method);
-//                if (serviceResponse != null) {
-//                    return serviceResponse;
-//                }
-//                
-//                if (path.startsWith("/")) {
-//                    path = path.substring(1);
-//                }
-//                if (path.isEmpty()) {
-//                    path = "index.html";
-//                }
-//                
-//                try {
-//                    InputStream targetStream = resolveAssetStream(path);
-//                    String mimeType = getMimeType(path);
-//                    return new WebResourceResponse(mimeType, "UTF-8", targetStream);
-//                } catch (IOException e) {
-//                    Log.e(TAG, "Exception loading asset file path: " + e.toString());
-//                    String errorHtml = "<html><body style='font-family:sans-serif;padding:20px;text-align:center;'>"
-//                            + "<h2>Application Error</h2>"
-//                            + "<p>The requested application resource could not be loaded local-side.</p>"
-//                            + "</body></html>";
-//                    InputStream fallbackStream = new ByteArrayInputStream(errorHtml.getBytes(StandardCharsets.UTF_8));
-//                    return new WebResourceResponse("text/html", "UTF-8", fallbackStream);
-//                }
-//            }
-//        }
-//        return super.shouldInterceptRequest(view, request);
-//    }
 @Override 
 public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
     Uri uri = request.getUrl();
@@ -159,29 +120,6 @@ public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceReque
      */
     private InputStream resolveAssetStream(String relativePath) throws IOException {
         String formattedPath = "www/" + relativePath;
-
-        // ◄ CONFIG-DRIVEN SWITCH: Check public memory only if public strategy is selected
-        if (mConfig != null && mConfig.isPublicWorkspaceEnabled()) {
-            String folderName = mConfig.getWorkspaceFolderName();
-            File publicDocsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
-            if (publicDocsDir != null) {
-                File workspaceFile = new File(new File(publicDocsDir, folderName), formattedPath);
-                if (workspaceFile.exists() && workspaceFile.isFile()) {
-                    Log.d(TAG, "[ROUTER-HIT] Serving asset from Public Shared Storage: " + formattedPath);
-                    return new FileInputStream(workspaceFile);
-                }
-            }
-        }
-
-        // Strategy Default Option 1: Serve directly from secure App Private Sandbox Cache
-        File sandboxFile = new File(mContext.getFilesDir(), formattedPath);
-        if (sandboxFile.exists() && sandboxFile.isFile()) {
-            Log.v(TAG, "[ROUTER-HIT] Serving asset from Private Sandbox isolation: " + formattedPath);
-            return new FileInputStream(sandboxFile);
-        }
-
-        // Strategy Default Option 2: Fallback to the hardcoded baseline assets inside the APK package
-        Log.v(TAG, "[ROUTER-HIT] Serving asset from base application APK assets: " + formattedPath);
         return mContext.getAssets().open(formattedPath);
     }
 
@@ -207,20 +145,7 @@ public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceReque
     public boolean shouldOverrideUrlLoading(WebView view, String url) {
         return handleUrlRouting(view, Uri.parse(url));
     }
-
-//    private boolean handleUrlRouting(WebView view, Uri uri) {
-//        String host = uri.getHost();
-//        String rawVirtualHost = getRawVirtualHost();
-//        if (host != null && (host.equals(rawVirtualHost) || host.endsWith("." + rawVirtualHost))) {
-//            return false;
-//        }
-//        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-//        view.getContext().startActivity(intent);
-//        return true;
-//    }
 private boolean handleUrlRouting(WebView view, Uri uri) {
-    // Returning false lets the WebView load ALL websites internally,
-    // exactly like a normal web browser.
     return false;
 }
 

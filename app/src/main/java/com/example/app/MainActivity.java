@@ -15,9 +15,7 @@ import android.webkit.WebView;
 public class MainActivity extends Activity {
     private static final String TAG = "JS_CONSOLE_JAVA_MainActivity";
     private WebView mWebView;
-    private WebView mMaintenanceWebView;
     private AppConfig mConfig;
-    private StorageManager mStorageManager;
     private com.example.app.services.IntentServiceRegistry mIntentRegistry;
 
     @Override
@@ -27,11 +25,9 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         mConfig = new AppConfig(this);
-        mStorageManager = new StorageManager(this, mConfig);
 
         if (mConfig.getVirtualHost().isEmpty()) return;
 
-        mStorageManager.createPublicWorkspaceDirectory();
 
         mWebView = findViewById(R.id.activity_main_webview);
         configureWebViewSettings(mWebView);
@@ -39,35 +35,8 @@ public class MainActivity extends Activity {
         mWebView.addJavascriptInterface(new com.example.app.services.AndroidWebSocketBridge(this, mWebView), "AndroidWebSocketBridge");
         mWebView.setWebViewClient(new MyWebViewClient(this, mConfig));
 
-        mMaintenanceWebView = findViewById(R.id.activity_maintenance_webview);
-        configureWebViewSettings(mMaintenanceWebView);
-        mMaintenanceWebView.addJavascriptInterface(new com.example.app.services.AndroidBridge(), "AndroidBridge");
-        mMaintenanceWebView.addJavascriptInterface(new com.example.app.services.AndroidWebSocketBridge(this, mMaintenanceWebView), "AndroidWebSocketBridge");
-        mMaintenanceWebView.setWebViewClient(new ConfigWebViewClient(this, mConfig));
 
         WebChromeClient unifiedChromeClient = new WebChromeClient() {
-//            // ◄ NEW IMPLEMENTATION: Overrides default security blocks to grant browser-layer resource access
-//            @Override
-//            public void onPermissionRequest(final android.webkit.PermissionRequest request) {
-//                Log.i(TAG, " -> WebView Browser Engine intercepting standard media resource request pipeline...");
-//                
-//                // Instruct the activity thread to process the layout authorization request asynchronously
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-//                            String[] requestedResources = request.getResources();
-//                            Log.d(TAG, " -> Inner Web Components requesting access to: " + java.util.Arrays.toString(requestedResources));
-//                            
-//                            // ◄ THE BRIDGING WIN: Grant the browser engine immediate clearance!
-//                            // Since our JS loop already forces the true Native OS system prompts first,
-//                            // we can safely grant this inner request immediately here.
-//                            request.grant(requestedResources);
-//                            Log.i(TAG, " -> Success: Browser-layer media resource permission stream granted successfully.");
-//                        }
-//                    }
-//                });
-//            }
 	    // zebra fix for lockups on lazy permission requests
 	    @Override 
 	    public void onPermissionRequest(final android.webkit.PermissionRequest request) {
@@ -90,10 +59,8 @@ public class MainActivity extends Activity {
         };
 
         mWebView.setWebChromeClient(unifiedChromeClient);
-        mMaintenanceWebView.setWebChromeClient(unifiedChromeClient);
 
-        String startupPath = mStorageManager.determineStartupPath();
-        mWebView.loadUrl(mConfig.getVirtualHost() + startupPath);
+        mWebView.loadUrl(mConfig.getVirtualHost());
 
     Log.d("JAVA_MainActivity", "Initializing native dynamic Intent routing engine mapping...");
     mIntentRegistry = new com.example.app.services.IntentServiceRegistry(this);
@@ -145,20 +112,9 @@ public class MainActivity extends Activity {
         return mConfig;
     }
 
-    private void closeMaintenanceView() {
-        if (mMaintenanceWebView != null) {
-            mMaintenanceWebView.setVisibility(View.GONE);
-            mMaintenanceWebView.loadUrl("about:blank");
-            mWebView.requestFocus();
-            Log.i(TAG, "Maintenance WebView Closed.");
-        }
-    }
-
     @Override 
     public void onBackPressed() {
-        if (mMaintenanceWebView != null && mMaintenanceWebView.getVisibility() == View.VISIBLE) {
-            closeMaintenanceView();
-        } else if (mWebView != null && mWebView.canGoBack()) {
+        if (mWebView != null && mWebView.canGoBack()) {
             mWebView.goBack();
         } else {
             super.onBackPressed();
@@ -178,13 +134,9 @@ public class MainActivity extends Activity {
     public void reloadPrimaryWebViewToRoot() {
         Log.i("JAVA_MainActivity", "reloadPrimaryWebViewToRoot() invoked. Refreshing production view canvas...");
         try {
-            if (mWebView != null && mStorageManager != null && mConfig != null) {
+            if (mWebView != null) {
                 mWebView.clearCache(true);
-                String freshStartupPath = mStorageManager.determineStartupPath();
-                String targetUrl = mConfig.getVirtualHost() + freshStartupPath;
-                Log.d("JAVA_MainActivity", " -> Loading freshly synchronized content path: " + targetUrl);
-                mWebView.loadUrl(targetUrl);
-                Log.i("JAVA_MainActivity", " -> Primary app workspace successfully refreshed to root level layout node.");
+                mWebView.loadUrl("file:///android_asset/index.html");
             }
         } catch (Exception e) {
             Log.e("JAVA_MainActivity", "Failed to force core viewport refresh: " + e.getMessage());
