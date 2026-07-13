@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hybrid-Mobile App</string>
-    <string name="virtual_host">example.com</string>
-    <string name="app_version_tag">1.0.0-beta</string>
 </resources>
