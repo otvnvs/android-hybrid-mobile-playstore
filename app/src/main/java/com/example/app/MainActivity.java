@@ -12,13 +12,12 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
-public class MainActivity extends Activity implements SecretTriggerDetector.OnTriggerListener {
+public class MainActivity extends Activity {
     private static final String TAG = "JS_CONSOLE_JAVA_MainActivity";
     private WebView mWebView;
     private WebView mMaintenanceWebView;
     private AppConfig mConfig;
     private StorageManager mStorageManager;
-    private SecretTriggerDetector mSecretDetector;
     private com.example.app.services.IntentServiceRegistry mIntentRegistry;
 
     @Override
@@ -29,7 +28,6 @@ public class MainActivity extends Activity implements SecretTriggerDetector.OnTr
 
         mConfig = new AppConfig(this);
         mStorageManager = new StorageManager(this, mConfig);
-        mSecretDetector = new SecretTriggerDetector(this);
 
         if (mConfig.getVirtualHost().isEmpty()) return;
 
@@ -147,56 +145,6 @@ public class MainActivity extends Activity implements SecretTriggerDetector.OnTr
         return mConfig;
     }
 
-//    @Override 
-//    public void onSecretTriggered() {
-//        if (mMaintenanceWebView == null || mConfig == null) return;
-//        if (mMaintenanceWebView.getVisibility() == View.VISIBLE) {
-//            closeMaintenanceView();
-//        } else {
-//            mMaintenanceWebView.loadUrl(mConfig.getVirtualHost() + "/maintenance/index.html");
-//            mMaintenanceWebView.setVisibility(View.VISIBLE);
-//            mMaintenanceWebView.requestFocus();
-//            Log.i(TAG, "Maintenance WebView Displayed.");
-//        }
-//    }
-@Override 
-public void onSecretTriggered() {
-    if (mMaintenanceWebView == null || mConfig == null) return;
-
-    // 1. Establish a safe default fallback value
-    boolean isSecretTriggerEnabled = true; 
-
-    // 2. Query the local resource manager for the compiled boolean toggle rule
-    try {
-        int resId = this.getResources().getIdentifier(
-            "enable_secret_trigger_combination", 
-            "bool", 
-            this.getPackageName()
-        );
-        if (resId != 0) {
-            isSecretTriggerEnabled = this.getResources().getBoolean(resId);
-        }
-    } catch (Exception e) {
-        Log.w(TAG, "Failed to read enable_secret_trigger_combination flag: " + e.getMessage());
-    }
-
-    // 3. If the resource explicitly turned off the feature, drop out here
-    if (!isSecretTriggerEnabled) {
-        Log.w(TAG, " -> Aborting trigger action: enable_secret_trigger_combination is disabled inside strings.xml.");
-        return; 
-    }
-
-    // 4. Existing dual-viewport visualization toggling path
-    if (mMaintenanceWebView.getVisibility() == View.VISIBLE) {
-        closeMaintenanceView();
-    } else {
-        mMaintenanceWebView.loadUrl(mConfig.getVirtualHost() + "/maintenance/index.html");
-        mMaintenanceWebView.setVisibility(View.VISIBLE);
-        mMaintenanceWebView.requestFocus();
-        Log.i(TAG, "Maintenance WebView Displayed.");
-    }
-}
-
     private void closeMaintenanceView() {
         if (mMaintenanceWebView != null) {
             mMaintenanceWebView.setVisibility(View.GONE);
@@ -219,20 +167,11 @@ public void onSecretTriggered() {
 
     @Override 
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (mSecretDetector != null) {
-            int keyCode = event.getKeyCode();
-            if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                if (mSecretDetector.handleKeyDown(keyCode, event)) return true;
-            } else if (event.getAction() == KeyEvent.ACTION_UP) {
-                if (mSecretDetector.handleKeyUp(keyCode, event)) return true;
-            }
-        }
         return super.dispatchKeyEvent(event);
     }
 
     @Override 
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (mSecretDetector != null && mSecretDetector.handleKeyUp(keyCode, event)) return true;
         return super.onKeyUp(keyCode, event);
     }
 
