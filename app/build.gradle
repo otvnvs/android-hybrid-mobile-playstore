@@ -1,21 +1,24 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 31
+    namespace "com.example.app"
+    // 1. Upgrade compileSdkVersion to match your target
+    compileSdkVersion 35
 
     defaultConfig {
         applicationId "com.example.app"
-        // STEP 2 MODIFICATION: Raised to eliminate vulnerable OS installations
         minSdkVersion 29
-        targetSdkVersion 31
-        versionCode 1
-        versionName "1.0"
+        
+        // 2. Upgrade targetSdkVersion to 35 (Android 15) or 36 (Android 16)
+        targetSdkVersion 35
+        
+        // 3. Increment your version code for the new release
+        versionCode 2
+        versionName "1.1"
     }
     buildTypes {
         release {
-            debuggable false     
-            minifyEnabled true   
-            
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
