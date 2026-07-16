@@ -1,20 +1,14 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.example.app"
-    // 1. Upgrade compileSdkVersion to match your target
-    compileSdkVersion 35
+    compileSdkVersion 31
 
     defaultConfig {
         applicationId "com.example.app"
         minSdkVersion 29
-        
-        // 2. Upgrade targetSdkVersion to 35 (Android 15) or 36 (Android 16)
-        targetSdkVersion 35
-        
-        // 3. Increment your version code for the new release
-        versionCode 2
-        versionName "1.1"
+        targetSdkVersion 31
+        versionCode 1
+        versionName "1.0"
     }
     buildTypes {
         release {
@@ -27,4 +21,3 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
-
